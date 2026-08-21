@@ -50,6 +50,7 @@ npm run dev
 | `npm run build` | Type check, then production build to `dist/` |
 | `npm test` | Vitest run over the projection math |
 | `npm run lint` | oxlint |
+| `npm run deploy` | Build, sync into the portfolio repo, push, and verify prod serves this commit |
 
 ## How it is put together
 
@@ -80,6 +81,24 @@ This is the one idea the code is built around, so it is worth stating plainly.
 Keeping them apart is what lets someone start using Pace on day 40,000 of a
 novel and still get an honest date. `startDate` means *tracking since*, not
 *work began*, because it is the denominator for the pace measurement.
+
+## Deploying
+
+`npm run deploy` refuses a dirty tree, builds with the commit SHA stamped into
+`dist/version.json`, rsyncs `dist/` into the portfolio repo under
+`pace-calculator/`, commits and pushes it, then polls
+`https://www.labrarf.com/pace-calculator/version.json` until production reports
+that SHA.
+
+Pace is served **same-origin** from the portfolio rather than through the
+site's usual cross-origin iframe wrapper. Browsers treat storage in a
+third-party frame as separate: Chrome partitions it per top-level site and
+Safari blocks it. Since everything Pace knows lives in `localStorage`, a wrapper
+would have split one person's log across two origins.
+
+The repo name, the folder it is served from, and the Vite `base` are all
+`pace-calculator`, so a single build works at both
+`www.labrarf.com/pace-calculator/` and `labrarf-rgb.github.io/pace-calculator/`.
 
 ## Storage
 
