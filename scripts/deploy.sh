@@ -46,8 +46,11 @@ fi
 
 echo "→ Waiting for $SITE_URL to report $EXPECTED ..."
 for i in $(seq 1 30); do
+  # version.json is pretty-printed, so the pattern has to tolerate the space
+  # after the colon. Matching '"commit":"' exactly never hits and the poll
+  # silently times out on a deploy that actually succeeded.
   LIVE="$(curl -fsS "$SITE_URL/version.json?cb=$(date +%s%N)" 2>/dev/null \
-    | grep -o '"commit":"[^"]*"' | cut -d'"' -f4 || true)"
+    | grep -o '"commit"[[:space:]]*:[[:space:]]*"[^"]*"' | cut -d'"' -f4 || true)"
   if [ "$LIVE" = "$EXPECTED" ]; then
     echo "✓ $EXPECTED is live at $SITE_URL"
     exit 0
