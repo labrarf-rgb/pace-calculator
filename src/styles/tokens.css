@@ -1,0 +1,40 @@
+/* Design tokens carried over from the DRIFTS Calculator so the two read as siblings. */
+:root {
+  --bg: #f7f5f0;
+  --surface: #fffdf6;
+  --surface-2: #f1eee7;
+  --text: #1a1a18;
+  --text-muted: #6b6b65;
+  --border: #e2dfd8;
+  --accent: #1a1a18;
+  --accent-warm: #3d5c45;
+  --accent-warm-soft: rgba(61, 92, 69, 0.1);
+  --danger: #a8472f;
+  --danger-soft: rgba(168, 71, 47, 0.1);
+  --gold: #9a7b2e;
+  --gold-soft: rgba(154, 123, 46, 0.12);
+
+  --font-display: 'Raleway', system-ui, -apple-system, sans-serif;
+  --font-body: 'Nunito', system-ui, -apple-system, sans-serif;
+  --radius: 4px;
+  --shadow: 0 1px 2px rgba(70, 52, 20, 0.05), 0 8px 24px rgba(70, 52, 20, 0.06);
+  --shadow-lg: 0 2px 6px rgba(70, 52, 20, 0.07), 0 18px 48px rgba(70, 52, 20, 0.09);
+}
+
+[data-theme='dark'] {
+  --bg: #232019;
+  --surface: #2b2721;
+  --surface-2: #332e27;
+  --text: #e8e4dc;
+  --text-muted: #a9a49a;
+  --border: #413b33;
+  --accent: #e8e4dc;
+  --accent-warm: #7ea98a;
+  --accent-warm-soft: rgba(126, 169, 138, 0.13);
+  --danger: #d9856b;
+  --danger-soft: rgba(217, 133, 107, 0.14);
+  --gold: #cba94f;
+  --gold-soft: rgba(203, 169, 79, 0.15);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.32);
+  --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.36), 0 18px 48px rgba(0, 0, 0, 0.44);
+}
