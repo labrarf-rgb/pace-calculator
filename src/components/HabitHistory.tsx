@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Project } from '../lib/types'
-import { habitGrid, habitStats } from '../lib/pace'
+import { amountsByDay, habitGrid, habitStats } from '../lib/pace'
 import { toDayKey } from '../lib/dates'
 import { formatAmount, formatDate } from '../lib/format'
 
@@ -31,6 +31,7 @@ export function HabitHistory({ project, now, onLog, onClearDay }: Props) {
   const grid = habitGrid(project, now)
   const stats = habitStats(project, now)
   const todayKey = toDayKey(now)
+  const loggedToday = amountsByDay(project).get(todayKey) ?? 0
 
   // The newest weeks are the interesting ones, so open scrolled to the right.
   useEffect(() => {
@@ -46,7 +47,12 @@ export function HabitHistory({ project, now, onLog, onClearDay }: Props) {
       return
     }
     onLog(amount)
-    setHint(`Logged ${formatAmount(amount)} ${project.unitLabel}. Every date above just moved.`)
+    // The running total is shown right beside this, so do not repeat it here.
+    setHint(
+      loggedToday > 0
+        ? `Added ${formatAmount(amount)}.`
+        : `Logged ${formatAmount(amount)} ${project.unitLabel}. Every date above just moved.`,
+    )
     setDraft('')
   }
 
@@ -163,9 +169,16 @@ export function HabitHistory({ project, now, onLog, onClearDay }: Props) {
           />
         </div>
         <button type="button" className="solid-btn" onClick={submit}>
-          Log it
+          {loggedToday > 0 ? 'Add to today' : 'Log it'}
         </button>
-        <span className="log-hint">{hint}</span>
+        <span className="log-hint">
+          {loggedToday > 0 && (
+            <b className="today-total">
+              Today so far: {formatAmount(loggedToday)} {project.unitLabel}.{' '}
+            </b>
+          )}
+          {hint}
+        </span>
       </div>
     </section>
   )

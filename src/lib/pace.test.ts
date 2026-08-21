@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cumulativeSeries, daysToFinish, habitGrid, habitStats, ledger, observe, outlook, resolveTarget } from './pace'
+import { addToDay, cumulativeSeries, dayLog, daysToFinish, habitGrid, habitStats, ledger, observe, outlook, resolveTarget, setDayAmount } from './pace'
 import { toDayKey } from './dates'
 import type { Project, Session } from './types'
 
@@ -314,5 +314,114 @@ describe('a head start, for work done before tracking began', () => {
     const stats = habitStats(midProject(), NOW)
     expect(stats.totalDays).toBe(1)
     expect(stats.daysWorked).toBe(0)
+  })
+})
+
+describe('logging more than once in a day', () => {
+  it('adds to the day rather than replacing it', () => {
+    let sessions = addToDay([], '2026-08-20', 600)
+    sessions = addToDay(sessions, '2026-08-20', 800)
+    expect(sessions).toEqual([{ date: '2026-08-20', amount: 1400 }])
+  })
+
+  it('keeps one record per day, however many times you log', () => {
+    let sessions: Session[] = []
+    for (const amount of [300, 200, 450, 50]) {
+      sessions = addToDay(sessions, '2026-08-20', amount)
+    }
+    expect(sessions).toHaveLength(1)
+    expect(sessions[0].amount).toBe(1000)
+  })
+
+  it('starts a separate record for a different day', () => {
+    let sessions = addToDay([], '2026-08-20', 600)
+    sessions = addToDay(sessions, '2026-08-21', 400)
+    expect(sessions).toHaveLength(2)
+    expect(sessions.map((s) => s.amount)).toEqual([600, 400])
+  })
+
+  it('ignores a zero or negative amount', () => {
+    expect(addToDay([], '2026-08-20', 0)).toEqual([])
+    expect(addToDay([], '2026-08-20', -50)).toEqual([])
+    const existing = [{ date: '2026-08-20', amount: 600 }]
+    expect(addToDay(existing, '2026-08-20', 0)).toEqual(existing)
+  })
+
+  it('does not inflate the measured pace when a day is logged twice', () => {
+    // Two entries on one day is one day of work, not two, so per-day output
+    // rises and the show-up frequency stays put.
+    const once = novel({ startingAmount: 0, sessions: [{ date: toDayKey(NOW), amount: 600 }] })
+    const twice = novel({
+      startingAmount: 0,
+      sessions: addToDay([{ date: toDayKey(NOW), amount: 600 }], toDayKey(NOW), 800),
+    })
+    expect(observe(once, NOW).sessionCount).toBe(1)
+    expect(observe(twice, NOW).sessionCount).toBe(1)
+    expect(observe(twice, NOW).perSession).toBe(1400)
+    expect(observe(twice, NOW).sessionsPerWeek).toBe(observe(once, NOW).sessionsPerWeek)
+  })
+})
+
+describe('setDayAmount', () => {
+  it('overwrites a day total', () => {
+    const sessions = setDayAmount([{ date: '2026-08-20', amount: 600 }], '2026-08-20', 950)
+    expect(sessions).toEqual([{ date: '2026-08-20', amount: 950 }])
+  })
+
+  it('removes the day when set to zero', () => {
+    expect(setDayAmount([{ date: '2026-08-20', amount: 600 }], '2026-08-20', 0)).toEqual([])
+  })
+
+  it('collapses duplicate records for the same day', () => {
+    const messy = [
+      { date: '2026-08-20', amount: 600 },
+      { date: '2026-08-20', amount: 100 },
+    ]
+    expect(setDayAmount(messy, '2026-08-20', 700)).toEqual([{ date: '2026-08-20', amount: 700 }])
+  })
+
+  it('leaves other days alone', () => {
+    const sessions = setDayAmount(
+      [{ date: '2026-08-19', amount: 500 }, { date: '2026-08-20', amount: 600 }],
+      '2026-08-20',
+      0,
+    )
+    expect(sessions).toEqual([{ date: '2026-08-19', amount: 500 }])
+  })
+})
+
+describe('dayLog', () => {
+  it('lists logged days newest first', () => {
+    const rows = dayLog(novel())
+    expect(rows).toHaveLength(17)
+    expect(rows[0].key > rows[1].key).toBe(true)
+  })
+
+  it('carries a running total that ends at the full logged amount', () => {
+    const rows = dayLog(novel())
+    expect(rows[0].runningLogged).toBe(15600)
+    expect(rows.at(-1)!.runningLogged).toBe(rows.at(-1)!.amount)
+  })
+
+  it('adds the head start into the running total but not the logged total', () => {
+    const rows = dayLog(novel({ startingAmount: 40000 }))
+    expect(rows[0].runningLogged).toBe(15600)
+    expect(rows[0].runningTotal).toBe(55600)
+  })
+
+  it('sums a day that was logged more than once into a single row', () => {
+    const key = toDayKey(NOW)
+    const p = novel({
+      startingAmount: 0,
+      sessions: addToDay(addToDay([], key, 600), key, 800),
+    })
+    const rows = dayLog(p)
+    expect(rows).toHaveLength(1)
+    expect(rows[0].amount).toBe(1400)
+    expect(rows[0].runningTotal).toBe(1400)
+  })
+
+  it('is empty when nothing is logged', () => {
+    expect(dayLog(novel({ sessions: [] }))).toEqual([])
   })
 })

@@ -31,6 +31,12 @@ adding a session, halving each session but showing up daily.
 **A continuous history, not a rolling window.** Every day from the project start
 to today, as a calendar. The blank squares are the argument.
 
+**A readable log.** Every recorded day with its amount and the running total as
+it stood that day, plus the totals for the head start, everything logged since,
+and what is left. Logging more than once in a day adds to that day rather than
+replacing it, and any day's amount can be corrected in place or zeroed to remove
+it.
+
 **Backup to file.** Save every project and its log to a dated JSON file, and load
 one back. Loading appends rather than replaces, so an import can never lose work.
 
@@ -111,4 +117,3 @@ working.
 
 - Recency weighting, so a strong recent month outweighs a weak first one
 - A confidence range on the date rather than a single day
-- Editing a past day's amount, rather than only clearing it

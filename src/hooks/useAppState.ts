@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { AppState, Project } from '../lib/types'
 import { blankProject, load, save } from '../lib/storage'
 import { toDayKey } from '../lib/dates'
+import { addToDay, setDayAmount } from '../lib/pace'
 
 export function useAppState() {
   const [state, setState] = useState<AppState>(() => load())
@@ -70,31 +71,28 @@ export function useAppState() {
     setState((prev) => ({ ...prev, theme: prev.theme === 'dark' ? 'light' : 'dark' }))
   }, [])
 
-  /** Add to today's total rather than replacing it, so two sittings both count. */
-  const logToday = useCallback((id: string, amount: number, now = new Date()) => {
-    const key = toDayKey(now)
-    setState((prev) => ({
-      ...prev,
-      projects: prev.projects.map((p) => {
-        if (p.id !== id) return p
-        const existing = p.sessions.find((s) => s.date === key)
-        const sessions = existing
-          ? p.sessions.map((s) => (s.date === key ? { ...s, amount: s.amount + amount } : s))
-          : [...p.sessions, { date: key, amount }]
-        return { ...p, sessions, updatedAt: new Date().toISOString() }
-      }),
-    }))
-  }, [])
-
-  const clearDay = useCallback((id: string, dayKey: string) => {
+  const withSessions = (id: string, next: (sessions: Project['sessions']) => Project['sessions']) => {
     setState((prev) => ({
       ...prev,
       projects: prev.projects.map((p) =>
-        p.id === id
-          ? { ...p, sessions: p.sessions.filter((s) => s.date !== dayKey), updatedAt: new Date().toISOString() }
-          : p,
+        p.id === id ? { ...p, sessions: next(p.sessions), updatedAt: new Date().toISOString() } : p,
       ),
     }))
+  }
+
+  /** Add to today's total rather than replacing it, so two sittings both count. */
+  const logToday = useCallback((id: string, amount: number, now = new Date()) => {
+    const key = toDayKey(now)
+    withSessions(id, (sessions) => addToDay(sessions, key, amount))
+  }, [])
+
+  /** Correct a day outright. Zero removes it. */
+  const setDay = useCallback((id: string, dayKey: string, amount: number) => {
+    withSessions(id, (sessions) => setDayAmount(sessions, dayKey, amount))
+  }, [])
+
+  const clearDay = useCallback((id: string, dayKey: string) => {
+    withSessions(id, (sessions) => setDayAmount(sessions, dayKey, 0))
   }, [])
 
   return {
@@ -107,6 +105,7 @@ export function useAppState() {
     setActive,
     toggleTheme,
     logToday,
+    setDay,
     clearDay,
   }
 }

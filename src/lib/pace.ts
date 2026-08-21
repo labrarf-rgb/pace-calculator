@@ -311,6 +311,61 @@ export function habitGrid(project: Project, now: Date = new Date()): HabitGrid {
   return { weeks, months }
 }
 
+/**
+ * Add to a day's running total rather than replacing it, so two sittings on the
+ * same day both count. The log stores one summed record per day: the atomic unit
+ * of the habit is showing up on a given day, and that is also what the pace
+ * measures.
+ */
+export function addToDay(sessions: Session[], dayKey: string, amount: number): Session[] {
+  if (amount <= 0) return sessions
+  const existing = sessions.find((s) => s.date === dayKey)
+  if (!existing) return [...sessions, { date: dayKey, amount }]
+  return sessions.map((s) => (s.date === dayKey ? { ...s, amount: s.amount + amount } : s))
+}
+
+/** Overwrite a day's total. An amount of zero or less removes the day entirely. */
+export function setDayAmount(sessions: Session[], dayKey: string, amount: number): Session[] {
+  const withoutDay = sessions.filter((s) => s.date !== dayKey)
+  return amount > 0 ? [...withoutDay, { date: dayKey, amount }] : withoutDay
+}
+
+export interface DayRow {
+  key: string
+  date: Date
+  /** Everything recorded on this day, with same-day entries already summed. */
+  amount: number
+  /** Total logged from the first entry through this day, head start excluded. */
+  runningLogged: number
+  /** The same running total with the head start added, so it reads as progress. */
+  runningTotal: number
+}
+
+/**
+ * Every day that has something logged, newest first, each carrying the totals
+ * as they stood at the end of that day.
+ */
+export function dayLog(project: Project): DayRow[] {
+  const byDay = amountsByDay(project)
+  const startingAmount = Math.max(project.startingAmount ?? 0, 0)
+
+  const ascending = [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+
+  let running = 0
+  const rows: DayRow[] = ascending.map(([key, amount]) => {
+    running += amount
+    return {
+      key,
+      date: fromDayKey(key),
+      amount,
+      runningLogged: running,
+      runningTotal: startingAmount + running,
+    }
+  })
+
+  return rows.reverse()
+}
+
 export interface HabitStats {
   /** Days in the project so far, start through today. */
   totalDays: number

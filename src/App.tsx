@@ -10,6 +10,7 @@ import { BurnUpChart } from './components/BurnUpChart'
 import { HabitHistory } from './components/HabitHistory'
 import { WhatIfSlider } from './components/WhatIfSlider'
 import { CostLedger } from './components/CostLedger'
+import { DayLog } from './components/DayLog'
 import { DataPanel } from './components/DataPanel'
 import { ThemeToggle } from './components/ThemeToggle'
 import { SettingsButton } from './components/SettingsButton'
@@ -27,6 +28,7 @@ export default function App() {
     setActive,
     toggleTheme,
     logToday,
+    setDay,
     clearDay,
   } = useAppState()
 
@@ -89,6 +91,12 @@ export default function App() {
             now={now}
             onLog={(amount) => logToday(active.id, amount)}
             onClearDay={(key) => clearDay(active.id, key)}
+          />
+          <DayLog
+            project={active}
+            view={view}
+            now={now}
+            onSetDay={(key, amount) => setDay(active.id, key, amount)}
           />
           <WhatIfSlider
             project={active}
