@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { addToDay, clampDaysPerWeek, cumulativeSeries, dayLog, daysToFinish, habitGrid, habitStats, ledger, leverRange, leverValue, observe, outlook, resolveTarget, setDayAmount } from './pace'
+import { addToDay, clampDaysPerWeek, cumulativeSeries, dayLog, daysToFinish, habitGrid, habitStats, ledger, leverRange, leverValue, observe, outlook, resolveTarget, setDayAmount, snapLever } from './pace'
 import { toDayKey } from './dates'
+import { formatRate } from './format'
 import type { Project, Session } from './types'
 
 const NOW = new Date(2026, 7, 20) // 20 Aug 2026, local
@@ -432,6 +433,22 @@ describe('the what-if lever', () => {
     expect(leverRange().min).toBe(0.5)
   })
 
+  it('puts the thumb where the readout says it is', () => {
+    // A range input snaps its thumb to the nearest step. With a coarse step the
+    // control pointed at 1.5 while its own readout said 1.7.
+    const p = novel()
+    const pace = observe(p, NOW).sessionsPerWeek
+    const { min, step } = leverRange()
+    const thumb = min + Math.round((pace - min) / step) * step
+    expect(formatRate(thumb)).toBe(formatRate(pace))
+  })
+
+  it('opens exactly on the measured pace, not a rounded copy of it', () => {
+    const p = novel()
+    const o = observe(p, NOW)
+    expect(leverValue(p, o)).toBe(o.sessionsPerWeek)
+  })
+
   it('never offers a frequency a week cannot hold', () => {
     // A goal of 10 a week is not reachable when the unit is days worked.
     const p = novel({ goal: { sessionsPerWeek: 10, perSession: 500 } })
@@ -529,5 +546,17 @@ describe('clampDaysPerWeek', () => {
   it('treats nonsense as zero rather than passing NaN into a projection', () => {
     expect(clampDaysPerWeek(Number.NaN)).toBe(0)
     expect(clampDaysPerWeek(-3)).toBe(0)
+  })
+})
+
+describe('snapLever', () => {
+  it('rounds a dragged value to a legible tenth', () => {
+    expect(snapLever(3.27)).toBe(3.3)
+    expect(snapLever(1.44)).toBe(1.4)
+  })
+
+  it('stays inside the week', () => {
+    expect(snapLever(0.01)).toBe(0.5)
+    expect(snapLever(9)).toBe(7)
   })
 })

@@ -398,7 +398,20 @@ export interface LeverRange {
  * is offered.
  */
 export function leverRange(): LeverRange {
-  return { min: 0.5, max: MAX_DAYS_PER_WEEK, step: 0.5 }
+  // A fine step so the thumb can sit exactly on a measured pace like 1.47. With
+  // a coarse step the browser snaps the thumb to the nearest notch, and the
+  // control ends up pointing somewhere its own readout disagrees with.
+  return { min: 0.5, max: MAX_DAYS_PER_WEEK, step: 0.01 }
+}
+
+/**
+ * Round a frequency the user picked to something legible. The thumb moves
+ * smoothly, but anything they choose lands on a tenth, so the number they see
+ * is the number in play.
+ */
+export function snapLever(value: number): number {
+  const snapped = Math.round(value * 10) / 10
+  return Math.min(Math.max(snapped, 0.5), MAX_DAYS_PER_WEEK)
 }
 
 /** Where the lever sits: the saved scenario, or the measured pace if untouched. */

@@ -1,6 +1,6 @@
 import type { Project } from '../lib/types'
 import type { LeverRange } from '../lib/pace'
-import { clampDaysPerWeek } from '../lib/pace'
+import { clampDaysPerWeek, snapLever } from '../lib/pace'
 import { formatAmount, formatDate, formatDays, formatDelta, formatRate } from '../lib/format'
 
 interface Props {
@@ -39,11 +39,12 @@ export function WhatIfSlider({
   const delta = days - baselineDays
   const goalSpw = clampDaysPerWeek(project.goal.sessionsPerWeek)
   const atBaseline = Math.abs(value - observedSpw) < 0.01
-  const moved = project.whatIfSessionsPerWeek !== undefined
 
+  // Landing back on the measured pace clears the override rather than setting a
+  // rounded copy of it, so the lever returns to exactly where the log puts it.
   const marks = [
-    { id: 'pace', label: 'Your pace', at: observedSpw },
-    { id: 'goal', label: 'Your goal', at: goalSpw },
+    { id: 'pace', label: 'Your pace', at: observedSpw, apply: onReset },
+    { id: 'goal', label: 'Your goal', at: goalSpw, apply: () => onChange(goalSpw) },
   ].filter((m) => m.at >= range.min && m.at <= range.max)
 
   return (
@@ -64,7 +65,7 @@ export function WhatIfSlider({
           step={range.step}
           value={value}
           aria-label="Days a week"
-          onChange={(e) => onChange(Number(e.target.value))}
+          onChange={(e) => onChange(snapLever(Number(e.target.value)))}
         />
         <div className="slider-out">
           {formatRate(value)} <small>{value === 1 ? 'day' : 'days'} a week</small>
@@ -81,17 +82,12 @@ export function WhatIfSlider({
           <button
             key={m.id}
             type="button"
-            className={`slider-mark${Math.abs(value - m.at) < 0.01 ? ' is-on' : ''}`}
-            onClick={() => onChange(m.at)}
+            className={`slider-mark${Math.abs(value - m.at) < 0.05 ? ' is-on' : ''}`}
+            onClick={m.apply}
           >
             {m.label} <span className="num">{formatRate(m.at)}</span>
           </button>
         ))}
-        {moved && (
-          <button type="button" className="slider-mark is-reset" onClick={onReset}>
-            Reset
-          </button>
-        )}
       </div>
 
       {goalFrequencyDate && goalDate && (
