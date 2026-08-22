@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useAppState } from './hooks/useAppState'
-import { daysToFinish, ledger, leverRange, leverValue, outlook, projectAt } from './lib/pace'
+import { clampDaysPerWeek, daysToFinish, ledger, leverRange, leverValue, outlook, projectAt } from './lib/pace'
 import { startOfDay } from './lib/dates'
 import { ProjectRail } from './components/ProjectRail'
 import { IntentPanel, TargetPanel } from './components/SetupPanels'
@@ -42,7 +42,7 @@ export default function App() {
 
   // The lever lives on the project, so a scenario survives a reload and does not
   // follow you into a different project. Its range stretches to cover the goal.
-  const range = leverRange(active, view.observation)
+  const range = leverRange()
   const spw = leverValue(active, view.observation)
   const observedSpw = view.observation.sessionsPerWeek
 
@@ -51,7 +51,7 @@ export default function App() {
   // lever and the gold date in the hero are visibly two different questions.
   const goalFrequencyProjection = projectAt(
     view.remaining,
-    active.goal.sessionsPerWeek,
+    clampDaysPerWeek(active.goal.sessionsPerWeek),
     view.observation.perSession,
     now,
   )

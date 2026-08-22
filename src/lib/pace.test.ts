@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addToDay, cumulativeSeries, dayLog, daysToFinish, habitGrid, habitStats, ledger, leverRange, leverValue, observe, outlook, resolveTarget, setDayAmount } from './pace'
+import { addToDay, clampDaysPerWeek, cumulativeSeries, dayLog, daysToFinish, habitGrid, habitStats, ledger, leverRange, leverValue, observe, outlook, resolveTarget, setDayAmount } from './pace'
 import { toDayKey } from './dates'
 import type { Project, Session } from './types'
 
@@ -427,19 +427,19 @@ describe('dayLog', () => {
 })
 
 describe('the what-if lever', () => {
-  it('can always reach the goal the user set', () => {
-    // A goal of 10 a week was unreachable when the range stopped at 7.
+  it('stops at seven, because a week has seven days', () => {
+    expect(leverRange().max).toBe(7)
+    expect(leverRange().min).toBe(0.5)
+  })
+
+  it('never offers a frequency a week cannot hold', () => {
+    // A goal of 10 a week is not reachable when the unit is days worked.
     const p = novel({ goal: { sessionsPerWeek: 10, perSession: 500 } })
-    const range = leverRange(p, observe(p, NOW))
-    expect(range.max).toBeGreaterThanOrEqual(10)
+    expect(leverValue(novel({ whatIfSessionsPerWeek: 10 }), observe(p, NOW))).toBe(7)
+    expect(outlook(p, NOW).goal.sessionsPerWeek).toBe(7)
   })
 
-  it('keeps a sensible floor of seven for an ordinary goal', () => {
-    const p = novel({ goal: { sessionsPerWeek: 3, perSession: 1000 } })
-    expect(leverRange(p, observe(p, NOW)).max).toBe(7)
-  })
-
-  it('stretches past a measured pace that already exceeds the goal', () => {
+  it('caps a measured pace at working every day', () => {
     const daily = novel({
       goal: { sessionsPerWeek: 2, perSession: 1000 },
       startDate: toDayKey(new Date(2026, 7, 14)),
@@ -449,8 +449,8 @@ describe('the what-if lever', () => {
       })),
     })
     const o = observe(daily, NOW)
-    expect(o.sessionsPerWeek).toBeGreaterThan(6)
-    expect(leverRange(daily, o).max).toBeGreaterThan(o.sessionsPerWeek)
+    expect(o.sessionsPerWeek).toBeLessThanOrEqual(7)
+    expect(leverRange().max).toBeGreaterThanOrEqual(o.sessionsPerWeek)
   })
 
   it('opens on the measured pace when it has never been moved', () => {
@@ -469,12 +469,65 @@ describe('the what-if lever', () => {
     // Lower the goal after parking the lever high and it must not fall off the end.
     const p = novel({ whatIfSessionsPerWeek: 99, goal: { sessionsPerWeek: 3, perSession: 1000 } })
     const o = observe(p, NOW)
-    expect(leverValue(p, o)).toBe(leverRange(p, o).max)
+    expect(leverValue(p, o)).toBe(leverRange().max)
   })
 
   it('ignores a corrupt saved value rather than producing NaN', () => {
     const p = novel({ whatIfSessionsPerWeek: Number.NaN })
     const o = observe(p, NOW)
     expect(leverValue(p, o)).toBeCloseTo(o.sessionsPerWeek, 5)
+  })
+})
+
+describe('a weekly rate needs a week', () => {
+  it('does not extrapolate a full week from a single day', () => {
+    // One day in, one logged day used to report 7 days a week.
+    const p = novel({ startDate: toDayKey(NOW), sessions: [{ date: toDayKey(NOW), amount: 900 }] })
+    const o = observe(p, NOW)
+    expect(o.elapsedDays).toBe(1)
+    expect(o.sessionsPerWeek).toBe(1)
+    expect(o.provisional).toBe(true)
+  })
+
+  it('counts three days in three as three a week, not seven', () => {
+    const days = [18, 19, 20]
+    const p = novel({
+      startDate: toDayKey(new Date(2026, 7, 18)),
+      sessions: days.map((d) => ({ date: toDayKey(new Date(2026, 7, d)), amount: 500 })),
+    })
+    expect(observe(p, NOW).sessionsPerWeek).toBe(3)
+  })
+
+  it('behaves normally once a real week has passed', () => {
+    const p = novel({
+      startDate: toDayKey(new Date(2026, 6, 8)),
+      sessions: [8, 15, 22, 29].map((d) => ({ date: toDayKey(new Date(2026, 6, d)), amount: 500 })),
+    })
+    // 4 days across 44 elapsed days is well under one a week
+    expect(observe(p, NOW).sessionsPerWeek).toBeCloseTo(4 / (44 / 7), 3)
+  })
+
+  it('tops out at seven however hard you work', () => {
+    const everyDay = Array.from({ length: 7 }, (_, i) => ({
+      date: toDayKey(new Date(2026, 7, 14 + i)),
+      amount: 500,
+    }))
+    const p = novel({ startDate: toDayKey(new Date(2026, 7, 14)), sessions: everyDay })
+    expect(observe(p, NOW).sessionsPerWeek).toBeLessThanOrEqual(7)
+  })
+})
+
+describe('clampDaysPerWeek', () => {
+  it('lets a real frequency through', () => {
+    expect(clampDaysPerWeek(3.5)).toBe(3.5)
+    expect(clampDaysPerWeek(7)).toBe(7)
+  })
+  it('caps anything above a week', () => {
+    expect(clampDaysPerWeek(8)).toBe(7)
+    expect(clampDaysPerWeek(100)).toBe(7)
+  })
+  it('treats nonsense as zero rather than passing NaN into a projection', () => {
+    expect(clampDaysPerWeek(Number.NaN)).toBe(0)
+    expect(clampDaysPerWeek(-3)).toBe(0)
   })
 })

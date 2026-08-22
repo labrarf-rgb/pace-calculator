@@ -15,8 +15,11 @@ implies, side by side. The distance between them is the largest number on the
 page.
 
 **Measures the variable you cannot self-report.** Nobody knows how often they
-actually sit down. Sessions per week is derived from the log and divided by
-*elapsed* weeks, so the zero days are in the denominator where they belong.
+actually sit down. Days worked per week is derived from the log and divided by
+*elapsed* weeks, so the zero days are in the denominator where they belong. It
+never divides by less than one whole week, because a weekly rate you have not
+observed for a week is a guess, and it caps at seven, because that is how many
+days a week has.
 
 **Works when you are already halfway.** Most people find a tool like this partway
 through the work. A project carries a head start: the amount finished before
@@ -26,15 +29,15 @@ turn the projection into fiction. Progress and pace are measured separately.
 
 **Prices decisions in days.** The cost ledger runs the same projection with one
 input changed at a time, so every row is directly comparable. Skipping a week,
-adding a session, halving each session but showing up daily.
+working one more day, halving your daily output but showing up every day.
 
 **A continuous history, not a rolling window.** Every day from the project start
 to today, as a calendar. The blank squares are the argument.
 
-**A what-if lever that respects your settings.** Its range stretches to reach
-the goal frequency you set rather than stopping at an arbitrary seven a week,
-and where you park it is saved per project, so a scenario survives a reload and
-does not follow you into a different project.
+**A what-if lever that respects your settings.** It spans a week, marks both
+your measured pace and the goal you set, and remembers where you parked it per
+project, so a scenario survives a reload and does not follow you into a
+different project.
 
 **A readable log.** Every recorded day with its amount and the running total as
 it stood that day, plus the totals for the head start, everything logged since,
@@ -86,8 +89,12 @@ no projection at all.
 This is the one idea the code is built around, so it is worth stating plainly.
 
 - **Progress** is `startingAmount + everything logged`. It answers "how far in am I".
-- **Pace** is measured only from logged sessions across the tracked window. It
+- **Pace** is measured only from logged days across the tracked window. It
   answers "how fast do I actually move".
+
+The atomic unit is the **day**, not the sitting. Logging twice on a Tuesday
+raises Tuesday's output, it does not make Tuesday count as two days of showing
+up. That is why every frequency in the app is days a week and tops out at seven.
 
 Keeping them apart is what lets someone start using Pace on day 40,000 of a
 novel and still get an honest date. `startDate` means *tracking since*, not

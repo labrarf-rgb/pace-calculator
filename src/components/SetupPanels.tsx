@@ -1,6 +1,6 @@
 import type { Project } from '../lib/types'
 import type { Outlook } from '../lib/pace'
-import { resolveTarget } from '../lib/pace'
+import { MAX_DAYS_PER_WEEK, clampDaysPerWeek, resolveTarget } from '../lib/pace'
 import { formatAmount } from '../lib/format'
 import { NumberField } from './NumberField'
 import { TextField } from './TextField'
@@ -36,13 +36,7 @@ export function TargetPanel({ project, view, onPatch }: Props) {
           placeholder="words"
           onChange={(unitLabel) => onPatch({ unitLabel })}
         />
-        <TextField
-          id="session-label"
-          label="One session is a"
-          value={project.sessionLabel}
-          placeholder="sitting"
-          onChange={(sessionLabel) => onPatch({ sessionLabel })}
-        />
+        <div />
       </div>
 
       {segments ? (
@@ -138,16 +132,19 @@ export function IntentPanel({ project, onPatch }: Omit<Props, 'view'>) {
       <div className="field-pair">
         <NumberField
           id="goal-spw"
-          label={`${project.sessionLabel}s / wk`}
-          value={project.goal.sessionsPerWeek}
+          label="Days a week"
+          value={clampDaysPerWeek(project.goal.sessionsPerWeek)}
           min={1}
+          max={MAX_DAYS_PER_WEEK}
           onChange={(sessionsPerWeek) =>
-            onPatch({ goal: { ...project.goal, sessionsPerWeek } })
+            onPatch({
+              goal: { ...project.goal, sessionsPerWeek: clampDaysPerWeek(sessionsPerWeek) },
+            })
           }
         />
         <NumberField
           id="goal-per"
-          label={`${project.unitLabel} each`}
+          label={`${project.unitLabel} a day`}
           value={project.goal.perSession}
           min={1}
           step={50}

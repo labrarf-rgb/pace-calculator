@@ -1,6 +1,7 @@
 import type { Outlook } from '../lib/pace'
+import { clampDaysPerWeek } from '../lib/pace'
 import type { Project } from '../lib/types'
-import { formatAmount, formatDate, formatRate, formatSpan } from '../lib/format'
+import { formatAmount, formatDate, formatDays, formatSpan } from '../lib/format'
 
 interface Props {
   project: Project
@@ -30,7 +31,7 @@ export function HeroDates({ project, view }: Props) {
           <span className="eyebrow eyebrow-mute">The date you are aiming at</span>
           <div className="date-big">{formatDate(goal.date)}</div>
           <div className="date-cap">
-            {formatRate(project.goal.sessionsPerWeek)} {project.sessionLabel}s a week at{' '}
+            {formatDays(clampDaysPerWeek(project.goal.sessionsPerWeek))} a week at{' '}
             {formatAmount(project.goal.perSession)} {project.unitLabel}
           </div>
         </div>

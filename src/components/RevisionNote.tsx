@@ -1,6 +1,7 @@
 import type { Outlook } from '../lib/pace'
+import { clampDaysPerWeek } from '../lib/pace'
 import type { Project } from '../lib/types'
-import { formatAmount, formatDate, formatRate, formatSpan } from '../lib/format'
+import { formatAmount, formatDate, formatDays, formatSpan } from '../lib/format'
 
 interface Props {
   project: Project
@@ -18,11 +19,12 @@ export function RevisionNote({ project, view }: Props) {
         <div className="notice">
           <RefreshIcon />
           <div>
-            Adjusted from your log. Your average {project.sessionLabel} is{' '}
+            Adjusted from your log. On the days you worked you averaged{' '}
             <b>{formatAmount(observation.perSession)}</b> {project.unitLabel}, against the{' '}
-            {formatAmount(project.goal.perSession)} you set, and you sat down{' '}
-            <b>{formatRate(observation.sessionsPerWeek)}</b> times a week against a goal of{' '}
-            {formatRate(project.goal.sessionsPerWeek)}. The projection uses the measured numbers.
+            {formatAmount(project.goal.perSession)} you set, and you worked{' '}
+            <b>{formatDays(observation.sessionsPerWeek)}</b> a week against a goal of{' '}
+            {formatDays(clampDaysPerWeek(project.goal.sessionsPerWeek))}. The projection uses the
+            measured numbers.
             {observation.startingAmount > 0 && (
               <>
                 {' '}

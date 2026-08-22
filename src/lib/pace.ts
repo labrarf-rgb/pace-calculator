@@ -1,5 +1,18 @@
 import type { Goal, Project, Session } from './types'
+
+/**
+ * The log keeps one record per day, so the frequency every projection uses is
+ * "days you worked in a week". There are only seven of those.
+ */
+export const MAX_DAYS_PER_WEEK = 7
+
+/** Clamp any stated or stored frequency into what a week can actually hold. */
+export function clampDaysPerWeek(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 0
+  return Math.min(value, MAX_DAYS_PER_WEEK)
+}
 import { addDays, daysBetween, fromDayKey, startOfDay, toDayKey } from './dates'
+import { formatDays } from './format'
 
 /** What the log actually says, as opposed to what the user believes. */
 export interface Observation {
@@ -82,7 +95,7 @@ export function observe(project: Project, now: Date = new Date()): Observation {
       sessionCount: 0,
       elapsedDays,
       perSession: project.goal.perSession,
-      sessionsPerWeek: project.goal.sessionsPerWeek,
+      sessionsPerWeek: clampDaysPerWeek(project.goal.sessionsPerWeek),
       measured: false,
       provisional: true,
     }
@@ -97,7 +110,10 @@ export function observe(project: Project, now: Date = new Date()): Observation {
     // Pace comes from the tracked window only. Folding the head start in here
     // would inflate the average session into something you never actually did.
     perSession: logged / sessions.length,
-    sessionsPerWeek: sessions.length / (elapsedDays / 7),
+    // Divide by at least one whole week. Two days in, one logged day is not
+    // "3.5 days a week", it is one day so far. Extrapolating a weekly rate from
+    // less than a week produced confident nonsense like 7 days a week on day one.
+    sessionsPerWeek: clampDaysPerWeek(sessions.length / (Math.max(elapsedDays, 7) / 7)),
     measured: true,
     provisional: elapsedDays < 14 || sessions.length < 3,
   }
@@ -130,7 +146,12 @@ export function outlook(project: Project, now: Date = new Date()): Outlook {
   const observation = observe(project, now)
   const remaining = Math.max(target - observation.done, 0)
 
-  const goal = projectAt(remaining, project.goal.sessionsPerWeek, project.goal.perSession, now)
+  const goal = projectAt(
+    remaining,
+    clampDaysPerWeek(project.goal.sessionsPerWeek),
+    project.goal.perSession,
+    now,
+  )
   const actual = projectAt(remaining, observation.sessionsPerWeek, observation.perSession, now)
 
   let deadlineGapDays: number | null = null
@@ -172,7 +193,6 @@ export function ledger(project: Project, now: Date = new Date()): LedgerRow[] {
   const { remaining, observation } = view
   const { perSession, sessionsPerWeek } = observation
   const unit = project.unitLabel
-  const session = project.sessionLabel
   const baseline = view.actual.days
 
   const at = (spw: number, per: number, rem = remaining) => daysToFinish(rem, spw, per)
@@ -196,27 +216,27 @@ export function ledger(project: Project, now: Date = new Date()): LedgerRow[] {
     },
     {
       id: 'plus-one',
-      label: `Add one more ${session} a week`,
+      label: `Work on one more day a week`,
       note: `About ${round(perSession).toLocaleString()} extra ${unit} every seven days.`,
-      days: at(sessionsPerWeek + 1, perSession),
+      days: at(clampDaysPerWeek(sessionsPerWeek + 1), perSession),
     },
     {
       id: 'plus-two',
-      label: `Add two more ${session}s a week`,
-      note: `Two more short sessions, nothing heroic.`,
-      days: at(sessionsPerWeek + 2, perSession),
+      label: `Work on two more days a week`,
+      note: `Two more short days, nothing heroic.`,
+      days: at(clampDaysPerWeek(sessionsPerWeek + 2), perSession),
     },
     {
       id: 'hit-goal',
-      label: `Actually hit your goal of ${project.goal.sessionsPerWeek} a week`,
-      note: 'The pace you already believe you keep.',
-      days: at(project.goal.sessionsPerWeek, perSession),
+      label: `Actually hit your goal of ${formatDays(clampDaysPerWeek(project.goal.sessionsPerWeek))} a week`,
+      note: 'The rhythm you already believe you keep.',
+      days: at(clampDaysPerWeek(project.goal.sessionsPerWeek), perSession),
     },
     {
       id: 'daily-half',
-      label: `Halve each ${session}, but show up daily`,
-      note: `${round(perSession / 2).toLocaleString()} ${unit} every day. Frequency usually wins, and this row shows by how much.`,
-      days: at(7, perSession / 2),
+      label: `Halve your daily output, but show up every day`,
+      note: `${round(perSession / 2).toLocaleString()} ${unit} a day. Frequency usually wins, and this row shows by how much.`,
+      days: at(MAX_DAYS_PER_WEEK, perSession / 2),
     },
   ]
 
@@ -373,19 +393,17 @@ export interface LeverRange {
 }
 
 /**
- * The what-if lever has to be able to reach the frequency the user actually set.
- * A fixed 0..7 range silently caps anyone whose goal is higher than daily, so
- * the top end stretches to cover the goal and the measured pace alike.
+ * The lever spans a week, because the thing it moves is how many days out of
+ * seven you write on. Nothing above seven is reachable, so nothing above seven
+ * is offered.
  */
-export function leverRange(project: Project, observation: Observation): LeverRange {
-  const goal = project.goal.sessionsPerWeek
-  const top = Math.max(7, Math.ceil(goal), Math.ceil(observation.sessionsPerWeek) + 1)
-  return { min: 0.5, max: top, step: 0.5 }
+export function leverRange(): LeverRange {
+  return { min: 0.5, max: MAX_DAYS_PER_WEEK, step: 0.5 }
 }
 
 /** Where the lever sits: the saved scenario, or the measured pace if untouched. */
 export function leverValue(project: Project, observation: Observation): number {
-  const { min, max } = leverRange(project, observation)
+  const { min, max } = leverRange()
   const saved = project.whatIfSessionsPerWeek
   const raw = typeof saved === 'number' && Number.isFinite(saved) ? saved : observation.sessionsPerWeek
   return Math.min(Math.max(raw, min), max)

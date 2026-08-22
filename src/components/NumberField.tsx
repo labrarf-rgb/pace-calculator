@@ -4,11 +4,12 @@ interface Props {
   value: number
   onChange: (value: number) => void
   min?: number
+  max?: number
   step?: number
   hint?: string
 }
 
-export function NumberField({ id, label, value, onChange, min = 0, step = 1, hint }: Props) {
+export function NumberField({ id, label, value, onChange, min = 0, max, step = 1, hint }: Props) {
   return (
     <div className="field">
       <label htmlFor={id}>{label}</label>
@@ -16,6 +17,7 @@ export function NumberField({ id, label, value, onChange, min = 0, step = 1, hin
         id={id}
         type="number"
         min={min}
+        max={max}
         step={step}
         value={Number.isFinite(value) ? value : ''}
         onChange={(e) => onChange(e.target.value === '' ? 0 : Number(e.target.value))}

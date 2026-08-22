@@ -46,3 +46,9 @@ export function formatDelta(days: number): string {
 export function formatRate(n: number): string {
   return String(Math.round(n * 10) / 10)
 }
+
+/** "1 day", "3.5 days". Used wherever a weekly frequency is spelled out. */
+export function formatDays(n: number): string {
+  const rounded = Math.round(n * 10) / 10
+  return `${rounded} ${rounded === 1 ? 'day' : 'days'}`
+}

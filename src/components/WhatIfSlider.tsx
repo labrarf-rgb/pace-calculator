@@ -1,6 +1,7 @@
 import type { Project } from '../lib/types'
 import type { LeverRange } from '../lib/pace'
-import { formatAmount, formatDate, formatDelta, formatRate } from '../lib/format'
+import { clampDaysPerWeek } from '../lib/pace'
+import { formatAmount, formatDate, formatDays, formatDelta, formatRate } from '../lib/format'
 
 interface Props {
   project: Project
@@ -36,7 +37,7 @@ export function WhatIfSlider({
   onReset,
 }: Props) {
   const delta = days - baselineDays
-  const goalSpw = project.goal.sessionsPerWeek
+  const goalSpw = clampDaysPerWeek(project.goal.sessionsPerWeek)
   const atBaseline = Math.abs(value - observedSpw) < 0.01
   const moved = project.whatIfSessionsPerWeek !== undefined
 
@@ -50,8 +51,8 @@ export function WhatIfSlider({
       <span className="eyebrow">The lever</span>
       <h2>What if I showed up more often</h2>
       <p className="panel-desc">
-        Frequency moves the date harder than output per session does. This changes only how often
-        you show up, holding each {project.sessionLabel} at the{' '}
+        How often you show up moves the date harder than how much you produce. This changes only
+        the number of days a week you work, holding each of those days at the{' '}
         <strong>{formatAmount(perSession)} {project.unitLabel}</strong> your log actually averages.
       </p>
 
@@ -62,11 +63,11 @@ export function WhatIfSlider({
           max={range.max}
           step={range.step}
           value={value}
-          aria-label={`${project.sessionLabel}s per week`}
+          aria-label="Days a week"
           onChange={(e) => onChange(Number(e.target.value))}
         />
         <div className="slider-out">
-          {formatRate(value)} <small>{project.sessionLabel}s / wk</small>
+          {formatRate(value)} <small>{value === 1 ? 'day' : 'days'} a week</small>
         </div>
         <div className="slider-out slider-date">
           {formatDate(date)}
@@ -95,7 +96,7 @@ export function WhatIfSlider({
 
       {goalFrequencyDate && goalDate && (
         <p className="slider-note">
-          At the {formatRate(goalSpw)} a week you set, keeping your real{' '}
+          At the {formatDays(goalSpw)} a week you set, keeping your real{' '}
           {formatAmount(perSession)}, you finish <strong>{formatDate(goalFrequencyDate)}</strong>.
           Hitting the full {formatAmount(project.goal.perSession)} you aim for as well makes it{' '}
           <strong>{formatDate(goalDate)}</strong>.
