@@ -66,3 +66,16 @@ describe('head start survives a backup', () => {
     expect(restored[0].startingAmount).toBe(0)
   })
 })
+
+describe('the what-if lever survives a backup', () => {
+  it('round trips a parked value', () => {
+    const a = blankProject('Novel')
+    a.whatIfSessionsPerWeek = 4.5
+    expect(parseBackup(toBackup([a]))[0].whatIfSessionsPerWeek).toBe(4.5)
+  })
+
+  it('stays undefined when it was never moved', () => {
+    const a = blankProject('Novel')
+    expect(parseBackup(toBackup([a]))[0].whatIfSessionsPerWeek).toBeUndefined()
+  })
+})

@@ -45,6 +45,9 @@ function reviveProject(raw: unknown): Project | null {
     // Older saves predate the head start, so treat a missing value as zero.
     startingAmount: Number.isFinite(p.startingAmount) ? Number(p.startingAmount) : 0,
     goal: { ...base.goal, ...(p.goal ?? {}) },
+    whatIfSessionsPerWeek: Number.isFinite(p.whatIfSessionsPerWeek)
+      ? Number(p.whatIfSessionsPerWeek)
+      : undefined,
     sessions: Array.isArray(p.sessions)
       ? p.sessions.filter(
           (s): s is Project['sessions'][number] =>

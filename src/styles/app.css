@@ -643,3 +643,39 @@ button.habit-cell:hover { outline: 1.5px solid var(--text-muted); outline-offset
 }
 .log-empty { color: var(--text-muted); font-size: 0.84rem; }
 .today-total { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ── what-if lever ── */
+.slider-marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.slider-mark {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  padding: 0.3rem 0.6rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+.slider-mark:hover { border-color: var(--text-muted); color: var(--text); }
+.slider-mark .num { font-weight: 600; color: var(--text); }
+.slider-mark.is-on {
+  border-color: var(--accent-warm);
+  background: var(--accent-warm-soft);
+  color: var(--text);
+}
+.slider-mark.is-reset { margin-left: auto; }
+.slider-note {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 0.79rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  max-width: 68ch;
+}
+.slider-note strong { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }

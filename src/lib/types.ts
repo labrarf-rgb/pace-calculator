@@ -45,6 +45,13 @@ export interface Project {
   /** Optional local calendar day the work is due, `YYYY-MM-DD`. */
   deadline?: string
   goal: Goal
+  /**
+   * Where the what-if lever is parked, in sessions per week. Persisted per
+   * project so a scenario survives a reload and does not follow you when you
+   * switch projects. Undefined means it has never been moved, and the lever
+   * opens on the measured pace.
+   */
+  whatIfSessionsPerWeek?: number
   sessions: Session[]
   createdAt: string
   updatedAt: string

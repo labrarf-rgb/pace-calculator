@@ -366,6 +366,31 @@ export function dayLog(project: Project): DayRow[] {
   return rows.reverse()
 }
 
+export interface LeverRange {
+  min: number
+  max: number
+  step: number
+}
+
+/**
+ * The what-if lever has to be able to reach the frequency the user actually set.
+ * A fixed 0..7 range silently caps anyone whose goal is higher than daily, so
+ * the top end stretches to cover the goal and the measured pace alike.
+ */
+export function leverRange(project: Project, observation: Observation): LeverRange {
+  const goal = project.goal.sessionsPerWeek
+  const top = Math.max(7, Math.ceil(goal), Math.ceil(observation.sessionsPerWeek) + 1)
+  return { min: 0.5, max: top, step: 0.5 }
+}
+
+/** Where the lever sits: the saved scenario, or the measured pace if untouched. */
+export function leverValue(project: Project, observation: Observation): number {
+  const { min, max } = leverRange(project, observation)
+  const saved = project.whatIfSessionsPerWeek
+  const raw = typeof saved === 'number' && Number.isFinite(saved) ? saved : observation.sessionsPerWeek
+  return Math.min(Math.max(raw, min), max)
+}
+
 export interface HabitStats {
   /** Days in the project so far, start through today. */
   totalDays: number

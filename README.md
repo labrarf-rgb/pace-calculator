@@ -31,6 +31,11 @@ adding a session, halving each session but showing up daily.
 **A continuous history, not a rolling window.** Every day from the project start
 to today, as a calendar. The blank squares are the argument.
 
+**A what-if lever that respects your settings.** Its range stretches to reach
+the goal frequency you set rather than stopping at an arbitrary seven a week,
+and where you park it is saved per project, so a scenario survives a reload and
+does not follow you into a different project.
+
 **A readable log.** Every recorded day with its amount and the running total as
 it stood that day, plus the totals for the head start, everything logged since,
 and what is left. Logging more than once in a day adds to that day rather than

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addToDay, cumulativeSeries, dayLog, daysToFinish, habitGrid, habitStats, ledger, observe, outlook, resolveTarget, setDayAmount } from './pace'
+import { addToDay, cumulativeSeries, dayLog, daysToFinish, habitGrid, habitStats, ledger, leverRange, leverValue, observe, outlook, resolveTarget, setDayAmount } from './pace'
 import { toDayKey } from './dates'
 import type { Project, Session } from './types'
 
@@ -423,5 +423,58 @@ describe('dayLog', () => {
 
   it('is empty when nothing is logged', () => {
     expect(dayLog(novel({ sessions: [] }))).toEqual([])
+  })
+})
+
+describe('the what-if lever', () => {
+  it('can always reach the goal the user set', () => {
+    // A goal of 10 a week was unreachable when the range stopped at 7.
+    const p = novel({ goal: { sessionsPerWeek: 10, perSession: 500 } })
+    const range = leverRange(p, observe(p, NOW))
+    expect(range.max).toBeGreaterThanOrEqual(10)
+  })
+
+  it('keeps a sensible floor of seven for an ordinary goal', () => {
+    const p = novel({ goal: { sessionsPerWeek: 3, perSession: 1000 } })
+    expect(leverRange(p, observe(p, NOW)).max).toBe(7)
+  })
+
+  it('stretches past a measured pace that already exceeds the goal', () => {
+    const daily = novel({
+      goal: { sessionsPerWeek: 2, perSession: 1000 },
+      startDate: toDayKey(new Date(2026, 7, 14)),
+      sessions: [14, 15, 16, 17, 18, 19, 20].map((d) => ({
+        date: toDayKey(new Date(2026, 7, d)),
+        amount: 500,
+      })),
+    })
+    const o = observe(daily, NOW)
+    expect(o.sessionsPerWeek).toBeGreaterThan(6)
+    expect(leverRange(daily, o).max).toBeGreaterThan(o.sessionsPerWeek)
+  })
+
+  it('opens on the measured pace when it has never been moved', () => {
+    const p = novel()
+    const o = observe(p, NOW)
+    expect(p.whatIfSessionsPerWeek).toBeUndefined()
+    expect(leverValue(p, o)).toBeCloseTo(o.sessionsPerWeek, 5)
+  })
+
+  it('remembers where it was parked', () => {
+    const p = novel({ whatIfSessionsPerWeek: 4 })
+    expect(leverValue(p, observe(p, NOW))).toBe(4)
+  })
+
+  it('clamps a saved value that no longer fits the range', () => {
+    // Lower the goal after parking the lever high and it must not fall off the end.
+    const p = novel({ whatIfSessionsPerWeek: 99, goal: { sessionsPerWeek: 3, perSession: 1000 } })
+    const o = observe(p, NOW)
+    expect(leverValue(p, o)).toBe(leverRange(p, o).max)
+  })
+
+  it('ignores a corrupt saved value rather than producing NaN', () => {
+    const p = novel({ whatIfSessionsPerWeek: Number.NaN })
+    const o = observe(p, NOW)
+    expect(leverValue(p, o)).toBeCloseTo(o.sessionsPerWeek, 5)
   })
 })
