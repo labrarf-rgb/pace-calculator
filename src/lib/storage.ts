@@ -32,12 +32,6 @@ function firstRun(): AppState {
   return { version: 1, projects: [project], activeId: project.id, theme: 'light' }
 }
 
-function reviveLink(raw: unknown): Project['estoria'] {
-  const l = raw as Partial<NonNullable<Project['estoria']>> | null | undefined
-  if (!l || typeof l.projectId !== 'string' || typeof l.since !== 'string') return undefined
-  return { projectId: l.projectId, name: typeof l.name === 'string' ? l.name : '', since: l.since }
-}
-
 /** Fill in anything a stored project is missing, so old saves keep working. */
 function reviveProject(raw: unknown): Project | null {
   if (!raw || typeof raw !== 'object') return null
@@ -54,7 +48,6 @@ function reviveProject(raw: unknown): Project | null {
     whatIfSessionsPerWeek: Number.isFinite(p.whatIfSessionsPerWeek)
       ? Number(p.whatIfSessionsPerWeek)
       : undefined,
-    estoria: reviveLink(p.estoria),
     sessions: Array.isArray(p.sessions)
       ? p.sessions.filter(
           (s): s is Project['sessions'][number] =>

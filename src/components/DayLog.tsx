@@ -88,11 +88,7 @@ export function DayLog({ project, view, now, onSetDay }: Props) {
                     {row.key === todayKey && <small>today</small>}
                   </td>
                   <td className="right delta">
-                    {project.estoria && row.key >= project.estoria.since ? (
-                      <span className="day-amount" title="From Estoria">
-                        {formatAmount(row.amount)}
-                      </span>
-                    ) : editing === row.key ? (
+                    {editing === row.key ? (
                       <input
                         className="day-edit"
                         type="number"
