@@ -134,7 +134,9 @@ The repo name, the folder it is served from, and the Vite `base` are all
 
 ## Storage
 
-Everything lives in `localStorage` under `pace.v1`. Nothing is uploaded. A
+Everything lives in `localStorage` under `pace.v1`. Nothing is uploaded. The one
+other key Pace touches is Estoria's `estoria.wordLog.v1`, which it only reads,
+and only for a project you have linked. A
 corrupt or partial save falls back to a fresh state rather than crashing, and
 stored projects are revived against current defaults so older saves keep
 working.
