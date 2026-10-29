@@ -15,7 +15,9 @@ const WEEKDAYS = ['', 'Mon', '', 'Wed', '', 'Fri', '']
 
 /** Shade a day against the goal for one session, so colour means intent, not rank. */
 function level(amount: number, goalPerSession: number): 0 | 1 | 2 | 3 | 4 {
-  if (amount <= 0) return 0
+  if (amount === 0) return 0
+  // A net-negative day (a revision day, filled from Estoria) still showed up.
+  if (amount < 0) return 1
   const ratio = amount / Math.max(goalPerSession, 1)
   if (ratio < 0.5) return 1
   if (ratio < 1) return 2
@@ -32,6 +34,9 @@ export function HabitHistory({ project, now, onLog, onClearDay }: Props) {
   const stats = habitStats(project, now)
   const todayKey = toDayKey(now)
   const loggedToday = amountsByDay(project).get(todayKey) ?? 0
+  // Days Estoria fills are its to say; clearing one here would come straight back.
+  const since = project.estoria?.since
+  const isLinked = (key: string) => since !== undefined && key >= since
 
   // The newest weeks are the interesting ones, so open scrolled to the right.
   useEffect(() => {
@@ -95,12 +100,12 @@ export function HabitHistory({ project, now, onLog, onClearDay }: Props) {
                         className={`habit-cell lv-${lv}${cell.key === todayKey ? ' is-today' : ''}`}
                         title={`${formatDate(cell.date)}: ${
                           cell.amount ? `${formatAmount(cell.amount)} ${project.unitLabel}` : 'nothing'
-                        }${cell.amount ? '. Click to clear.' : ''}`}
+                        }${cell.amount && !isLinked(cell.key) ? '. Click to clear.' : ''}`}
                         aria-label={`${formatDate(cell.date)}, ${
                           cell.amount ? `${formatAmount(cell.amount)} ${project.unitLabel}` : 'nothing recorded'
                         }`}
                         onClick={() => {
-                          if (cell.amount > 0 && confirm(`Clear ${formatDate(cell.date)}?`)) {
+                          if (cell.amount !== 0 && !isLinked(cell.key) && confirm(`Clear ${formatDate(cell.date)}?`)) {
                             onClearDay(cell.key)
                           }
                         }}
@@ -152,34 +157,44 @@ export function HabitHistory({ project, now, onLog, onClearDay }: Props) {
         </div>
       </dl>
 
-      <div className="log-row">
-        <div className="field">
-          <label htmlFor="log-today">Today&apos;s {project.unitLabel}</label>
-          <input
-            id="log-today"
-            type="number"
-            min={0}
-            step={10}
-            value={draft}
-            placeholder="0"
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') submit()
-            }}
-          />
+      {since !== undefined ? (
+        <p className="log-hint">
+          <b className="today-total">
+            Today so far: {loggedToday > 0 ? '+' : ''}
+            {formatAmount(loggedToday)} {project.unitLabel}.{' '}
+          </b>
+          Filled from {project.estoria?.name || 'Estoria'} as you write. Unlink it in settings to log by hand.
+        </p>
+      ) : (
+        <div className="log-row">
+          <div className="field">
+            <label htmlFor="log-today">Today&apos;s {project.unitLabel}</label>
+            <input
+              id="log-today"
+              type="number"
+              min={0}
+              step={10}
+              value={draft}
+              placeholder="0"
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submit()
+              }}
+            />
+          </div>
+          <button type="button" className="solid-btn" onClick={submit}>
+            {loggedToday > 0 ? 'Add to today' : 'Log it'}
+          </button>
+          <span className="log-hint">
+            {loggedToday > 0 && (
+              <b className="today-total">
+                Today so far: {formatAmount(loggedToday)} {project.unitLabel}.{' '}
+              </b>
+            )}
+            {hint}
+          </span>
         </div>
-        <button type="button" className="solid-btn" onClick={submit}>
-          {loggedToday > 0 ? 'Add to today' : 'Log it'}
-        </button>
-        <span className="log-hint">
-          {loggedToday > 0 && (
-            <b className="today-total">
-              Today so far: {formatAmount(loggedToday)} {project.unitLabel}.{' '}
-            </b>
-          )}
-          {hint}
-        </span>
-      </div>
+      )}
     </section>
   )
 }

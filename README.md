@@ -48,6 +48,19 @@ it.
 **Backup to file.** Save every project and its log to a dated JSON file, and load
 one back. Loading appends rather than replaces, so an import can never lose work.
 
+**Fills itself from Estoria.** Link a project to an Estoria project (Settings,
+Estoria) and each day from the link on is the net words you typed in Estoria
+that day, with progress following Estoria's total of written chapters (planned
+counts for chapters with no prose yet are left out). Estoria records the words as
+you type, under `estoria.wordLog.v1` in localStorage, and Pace reads that key
+because both apps are served from the same origin. Pace does not diff Estoria's
+total, which would land several days' writing on whichever day Pace was opened
+and count version switches and restores as writing. Linked days are set rather
+than added, so reading the log twice changes nothing; days before the link keep
+what was logged by hand, and unlinking keeps everything. A revision day can be
+negative: it counts as a day you showed up and pulls the average down. Words
+typed in the Estoria Android app are not in the log yet.
+
 **Unit agnostic.** Nothing below the label fields knows whether it is counting
 words, miles, pages or dollars. Writers are the wedge, not the ceiling.
 
@@ -76,6 +89,7 @@ siblings.
 src/lib/pace.ts     projection maths, pure and framework free
 src/lib/dates.ts    local calendar day helpers
 src/lib/storage.ts  localStorage persistence, versioned and forgiving
+src/lib/estoria.ts  reads Estoria's daily word log and folds it into a linked project
 src/hooks/          app state
 src/components/     the UI
 ```

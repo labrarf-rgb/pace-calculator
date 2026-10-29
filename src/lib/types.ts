@@ -53,8 +53,23 @@ export interface Project {
    */
   whatIfSessionsPerWeek?: number
   sessions: Session[]
+  /**
+   * Linked to an Estoria project: from `since` on, the log is filled from the
+   * words Estoria recorded as they were typed, and the head start follows
+   * Estoria's total. See `lib/estoria.ts`.
+   */
+  estoria?: EstoriaLink
   createdAt: string
   updatedAt: string
+}
+
+export interface EstoriaLink {
+  /** The Estoria project's id. */
+  projectId: string
+  /** Its name when linked, for display if it disappears from this browser. */
+  name: string
+  /** First local day, `YYYY-MM-DD`, whose amount comes from Estoria. */
+  since: string
 }
 
 export interface AppState {

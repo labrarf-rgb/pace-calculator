@@ -80,7 +80,10 @@ export function totalLogged(sessions: Session[]): number {
  * they have to be in the denominator.
  */
 export function observe(project: Project, now: Date = new Date()): Observation {
-  const sessions = project.sessions.filter((s) => s.amount > 0)
+  // Any day with a net change is a day you showed up. Hand-logged days are
+  // always positive; a day filled from Estoria can be negative, a revision day
+  // that cut more than it added, and it counts as worked and drags the average.
+  const sessions = project.sessions.filter((s) => Number.isFinite(s.amount) && s.amount !== 0)
   const logged = totalLogged(sessions)
   const startingAmount = Math.max(project.startingAmount ?? 0, 0)
   const done = startingAmount + logged
@@ -267,7 +270,7 @@ export function ledger(project: Project, now: Date = new Date()): LedgerRow[] {
 export function amountsByDay(project: Project): Map<string, number> {
   const byDay = new Map<string, number>()
   for (const s of project.sessions) {
-    if (s.amount > 0) byDay.set(s.date, (byDay.get(s.date) ?? 0) + s.amount)
+    if (Number.isFinite(s.amount) && s.amount !== 0) byDay.set(s.date, (byDay.get(s.date) ?? 0) + s.amount)
   }
   return byDay
 }
@@ -452,7 +455,7 @@ export function habitStats(project: Project, now: Date = new Date()): HabitStats
 
   for (let i = 0; i < totalDays; i++) {
     const date = addDays(start, i)
-    const worked = (byDay.get(toDayKey(date)) ?? 0) > 0
+    const worked = byDay.has(toDayKey(date))
     if (worked) {
       daysWorked++
       run++
@@ -471,7 +474,7 @@ export function habitStats(project: Project, now: Date = new Date()): HabitStats
   for (let i = 0; i < totalDays; i++) {
     const date = addDays(today, -i)
     if (date < start) break
-    const worked = (byDay.get(toDayKey(date)) ?? 0) > 0
+    const worked = byDay.has(toDayKey(date))
     if (worked) currentStreak++
     else if (i === 0) continue
     else break
@@ -494,7 +497,7 @@ export function cumulativeSeries(
 ): Array<{ day: number; total: number }> {
   const start = startOfDay(fromDayKey(project.startDate))
   const sorted = [...project.sessions]
-    .filter((s) => s.amount > 0)
+    .filter((s) => Number.isFinite(s.amount) && s.amount !== 0)
     .sort((a, b) => a.date.localeCompare(b.date))
 
   // Day zero sits at the head start, so the curve begins where the work did.

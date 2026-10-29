@@ -94,15 +94,22 @@ export function TargetPanel({ project, view, onPatch }: Props) {
         </>
       )}
 
-      <NumberField
-        id="starting-amount"
-        label={`Already done before tracking`}
-        value={project.startingAmount}
-        min={0}
-        step={100}
-        hint={`Work you finished before you started using Pace. It counts toward the target and is left out of your pace, so it cannot distort the projection.`}
-        onChange={(startingAmount) => onPatch({ startingAmount })}
-      />
+      {project.estoria ? (
+        <p className="field-hint">
+          Already done before tracking: <b>{formatAmount(project.startingAmount)}</b>, set from{' '}
+          {project.estoria.name || 'Estoria'} so your progress matches its total.
+        </p>
+      ) : (
+        <NumberField
+          id="starting-amount"
+          label={`Already done before tracking`}
+          value={project.startingAmount}
+          min={0}
+          step={100}
+          hint={`Work you finished before you started using Pace. It counts toward the target and is left out of your pace, so it cannot distort the projection.`}
+          onChange={(startingAmount) => onPatch({ startingAmount })}
+        />
+      )}
 
       <div className="derived">
         Target: <b>{formatAmount(target)}</b> {project.unitLabel}.{' '}

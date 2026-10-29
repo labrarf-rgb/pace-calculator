@@ -3,9 +3,27 @@ import type { AppState, Project } from '../lib/types'
 import { blankProject, load, save } from '../lib/storage'
 import { toDayKey } from '../lib/dates'
 import { addToDay, setDayAmount } from '../lib/pace'
+import { applyEstoria, ESTORIA_LOG_KEY, linkStart, readEstoriaLog, type EstoriaProject } from '../lib/estoria'
+
+/**
+ * Fold Estoria's days into every linked project. `applyEstoria` returns null
+ * when nothing moved, so an unchanged log hands back the same state and costs
+ * no render or save.
+ */
+function foldEstoria(state: AppState, log: EstoriaProject[]): AppState {
+  let changed = false
+  const projects = state.projects.map((p) => {
+    const entry = p.estoria && log.find((e) => e.id === p.estoria!.projectId)
+    const patch = entry ? applyEstoria(p, entry) : null
+    if (!patch) return p
+    changed = true
+    return { ...p, ...patch, updatedAt: new Date().toISOString() }
+  })
+  return changed ? { ...state, projects } : state
+}
 
 export function useAppState() {
-  const [state, setState] = useState<AppState>(() => load())
+  const [state, setState] = useState<AppState>(() => foldEstoria(load(), readEstoriaLog()))
 
   useEffect(() => {
     save(state)
@@ -14,6 +32,32 @@ export function useAppState() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', state.theme)
   }, [state.theme])
+
+  // Estoria's projects in this browser, re-read whenever Pace comes back into
+  // view and whenever an Estoria tab writes the log, so a linked project follows
+  // the writing live.
+  const [estoria, setEstoria] = useState<EstoriaProject[]>(() => readEstoriaLog())
+  useEffect(() => {
+    const refresh = () => {
+      const log = readEstoriaLog()
+      setEstoria(log)
+      setState((prev) => foldEstoria(prev, log))
+    }
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === ESTORIA_LOG_KEY || e.key === null) refresh()
+    }
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refresh()
+    }
+    window.addEventListener('storage', onStorage)
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.removeEventListener('storage', onStorage)
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [])
 
   const active = useMemo(
     () => state.projects.find((p) => p.id === state.activeId) ?? state.projects[0] ?? null,
@@ -95,8 +139,33 @@ export function useAppState() {
     withSessions(id, (sessions) => setDayAmount(sessions, dayKey, 0))
   }, [])
 
+  /** Take this project's log from an Estoria project from now on. */
+  const linkEstoria = useCallback((id: string, entry: EstoriaProject) => {
+    setState((prev) => ({
+      ...prev,
+      projects: prev.projects.map((p) => {
+        if (p.id !== id) return p
+        const linked = { ...p, estoria: { projectId: entry.id, name: entry.name, since: linkStart(p, entry) } }
+        return { ...linked, ...applyEstoria(linked, entry), updatedAt: new Date().toISOString() }
+      }),
+    }))
+  }, [])
+
+  /** Stop following Estoria. Everything it filled in stays in the log. */
+  const unlinkEstoria = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      projects: prev.projects.map((p) =>
+        p.id === id ? { ...p, estoria: undefined, updatedAt: new Date().toISOString() } : p,
+      ),
+    }))
+  }, [])
+
   return {
     state,
+    estoria,
+    linkEstoria,
+    unlinkEstoria,
     active,
     patchProject,
     addProject,

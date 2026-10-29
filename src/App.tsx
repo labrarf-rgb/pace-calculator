@@ -12,6 +12,7 @@ import { WhatIfSlider } from './components/WhatIfSlider'
 import { CostLedger } from './components/CostLedger'
 import { DayLog } from './components/DayLog'
 import { DataPanel } from './components/DataPanel'
+import { EstoriaPanel } from './components/EstoriaPanel'
 import { ThemeToggle } from './components/ThemeToggle'
 import { SettingsButton } from './components/SettingsButton'
 import { ProjectSwitcher } from './components/ProjectSwitcher'
@@ -20,6 +21,9 @@ import { Modal } from './components/Modal'
 export default function App() {
   const {
     state,
+    estoria,
+    linkEstoria,
+    unlinkEstoria,
     active,
     patchProject,
     addProject,
@@ -129,6 +133,12 @@ export default function App() {
             onSelect={setActive}
             onAdd={addProject}
             onRemove={removeProject}
+          />
+          <EstoriaPanel
+            project={active}
+            estoria={estoria}
+            onLink={(entry) => linkEstoria(active.id, entry)}
+            onUnlink={() => unlinkEstoria(active.id)}
           />
           <DataPanel projects={state.projects} onImport={importProjects} />
         </div>
